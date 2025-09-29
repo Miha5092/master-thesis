@@ -1,0 +1,8 @@
+.venv
+data/*
+__pycache__/
+*.pyc
+*.pyo
+results/*
+*.out
+report_images/*
