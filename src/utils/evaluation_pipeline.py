@@ -10,12 +10,90 @@ from src.datasets.real_obs_dataset import load_data as load_real_data
 from src.datasets.vitae_dataset import unscale
 from src.utils.evaluation import compute_relative_error, compute_rmse, compute_mean_fractional_error, compute_mean_fractional_bias
 
-def evaluate_on_real(
+
+def evaluate(
     model: nn.Module,
     data_scaling_type: str,
     timesteps: int,
     experiment_name: str = None,
 ) -> None:
+    
+    results_on_simulated = evaluate_on_simulated(model, data_scaling_type, timesteps)
+    results_on_real = evaluate_on_real(model, data_scaling_type, timesteps)
+    
+    # Decide where to save the results
+    save_dirs_map = {
+        "VCNN": "results/predictions/vunet",
+        "VCNN_classic": "results/predictions/vcnn",
+        "ConvLSTM": "results/predictions/clstm",
+        "OptimizedModule": "results/predictions/clstm",
+        "ViTAE": "results/predictions/vitae"
+    }
+
+    # Decide where to save the results
+    preds_dir = save_dirs_map.get(model.__class__.__name__, "results/predictions/unknown_model")
+    os.makedirs(preds_dir, exist_ok=True)
+    preds_file = os.path.join(preds_dir, f"{experiment_name}_results.npz")
+
+    np.savez_compressed(
+        preds_file,
+
+        # ------ Saving the results on the simulated data ------
+
+        # Save the data used to compute the metrics
+        simulated_observations=results_on_simulated["observations"],
+        simulated_ground_truths=results_on_simulated["ground_truths"],
+        simulated_predictions=results_on_simulated["predictions"],
+        simulated_target_masks=results_on_simulated["target_masks"],
+        # Save the relative error
+        simulated_global_re=results_on_simulated["global_re"],
+        simulated_pollutants_re=results_on_simulated["pollutants_re"],
+        # Save the RMSe
+        simulated_global_rmse=results_on_simulated["global_rmse"],
+        simulated_pollutants_rmse=results_on_simulated["pollutants_rmse"],
+        # Save the MFE
+        simulated_global_mfe=results_on_simulated["global_mfe"],
+        simulated_pollutants_mfe=results_on_simulated["pollutants_mfe"],
+        # Save the MFB
+        simulated_global_mfb=results_on_simulated["global_mfb"],
+        simulated_pollutants_mfb=results_on_simulated["pollutants_mfb"],
+
+
+        # ------ Saving the results on the real data ------
+
+        # Save the data used to compute the metrics
+        real_observations=results_on_real["observations"],
+        real_ground_truths=results_on_real["ground_truths"],
+        real_predictions=results_on_real["predictions"],
+        real_target_masks=results_on_real["target_masks"],
+        # Save the relative error
+        real_global_re=results_on_real["global_re"],
+        real_pollutants_re=results_on_real["pollutants_re"],
+        # Save the RMSe
+        real_global_rmse=results_on_real["global_rmse"],
+        real_pollutants_rmse=results_on_real["pollutants_rmse"],
+        # Save the MFE
+        real_global_mfe=results_on_real["global_mfe"],
+        real_pollutants_mfe=results_on_real["pollutants_mfe"],
+        # Save the MFB
+        real_global_mfb=results_on_real["global_mfb"],
+        real_pollutants_mfb=results_on_real["pollutants_mfb"]
+    )
+
+
+def evaluate_on_simulated(
+    model: nn.Module,
+    data_scaling_type: str,
+    timesteps: int,
+) -> dict:
+    pass
+
+
+def evaluate_on_real(
+    model: nn.Module,
+    data_scaling_type: str,
+    timesteps: int,
+) -> dict:
     
     device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
 
@@ -96,37 +174,23 @@ def evaluate_on_real(
         pollutants_rmse.append(pollutant_rmse)
         pollutants_mfe.append(pollutant_mfe)
         pollutants_mfb.append(pollutant_mfb)
-    
-    # Decide where to save the results
-    save_dirs_map = {
-        "VCNN": "results/predictions/vunet",
-        "VCNN_classic": "results/predictions/vcnn",
-        "ConvLSTM": "results/predictions/clstm",
-        "OptimizedModule": "results/predictions/clstm",
-        "ViTAE": "results/predictions/vitae"
-    }
 
-    preds_dir = save_dirs_map.get(model.__class__.__name__, "results/predictions/unknown_model")
-    os.makedirs(preds_dir, exist_ok=True)
-    preds_file = os.path.join(preds_dir, f"{experiment_name}_results.npz")
-
-    np.savez_compressed(
-        preds_file,
+    return {
         # Save the data used to compute the metrics
-        observations=observations,
-        ground_truths=ground_truths.numpy(),
-        predictions=predictions.numpy(),
-        target_masks=target_masks.numpy(),
+        "observations": observations,
+        "ground_truths": ground_truths.numpy(),
+        "predictions": predictions.numpy(),
+        "target_masks": target_masks.numpy(),
         # Save the relative error
-        global_re=global_re,
-        pollutants_re=pollutants_re,
+        "global_re": global_re,
+        "pollutants_re": pollutants_re,
         # Save the RMSe
-        global_rmse=global_rmse,
-        pollutants_rmse=pollutants_rmse,
+        "global_rmse": global_rmse,
+        "pollutants_rmse": pollutants_rmse,
         # Save the MFE
-        global_mfe=global_mfe,
-        pollutants_mfe=pollutants_mfe,
+        "global_mfe": global_mfe,
+        "pollutants_mfe": pollutants_mfe,
         # Save the MFB
-        global_mfb=global_mfb,
-        pollutants_mfb=pollutants_mfb
-    )
+        "global_mfb": global_mfb,
+        "pollutants_mfb": pollutants_mfb
+    }
